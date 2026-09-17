@@ -359,11 +359,12 @@
       float.hidden = true;
       composer.classList.remove('compact');
       input.dataset.placeholder = '描述一个复杂目标，灵犀会规划、执行并汇报进度';
-      // 气泡里的回复壳搬回对话流
+      // 气泡里的回复壳搬回对话流，并滚到最新
       const stream = $('#fr-stream');
       if (stream.firstElementChild) $('#feed').appendChild(stream.firstElementChild);
       $('#canvas-float-reply').hidden = true;
       if (wrap.parentElement !== composerHome) composerHome.appendChild(wrap);
+      scrollBottom();
     }
   }
 
