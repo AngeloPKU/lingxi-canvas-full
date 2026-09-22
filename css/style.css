@@ -847,11 +847,10 @@ textarea { font-family: inherit; }
 .composer.compact .composer-bar { display: contents; }
 .composer.compact .bar-left { order: 1; }
 .composer.compact .bar-right { order: 3; }
-/* 紧凑态保留加号与 Pro 模式，隐藏专家模式与安全保护 */
+/* 紧凑态保留加号与安全保护，隐藏专家模式 */
 .composer.compact .bar-left { display: flex; }
 .composer.compact .pro-pill { display: flex; }
-.composer.compact .bar-left .exp-pill,
-.composer.compact .bar-left button:nth-child(3) { display: none; }
+.composer.compact .bar-left .exp-pill { display: none; }
 
 /* 隐藏按钮：KDesign Button Icon Light Small（24px/r6），hover 输入框容器时才出现 */
 .canvas-float-composer::after {
