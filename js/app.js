@@ -343,8 +343,52 @@
     const body = $('#fr-body');
     body.scrollTop = body.scrollHeight;
   }
+
+  // FLIP 过渡：把流式回复壳在 feed ↔ 气泡之间平滑搬移
+  let flipLock = false;
+  function flipMoveShell(toFloat) {
+    const feed = $('#feed');
+    const stream = $('#fr-stream');
+    // 取最新的 ai-block（最后一个），不是第一个
+    const allBlocks = toFloat
+      ? feed.querySelectorAll('.ai-block')
+      : stream.querySelectorAll('.ai-block');
+    const block = allBlocks[allBlocks.length - 1];
+    if (!block) return;
+    const first = block.getBoundingClientRect();
+    if (toFloat) {
+      stream.appendChild(block);
+      $('#canvas-float-reply').hidden = false;
+      setFloatCollapsed(false);
+    } else {
+      feed.appendChild(block);
+      if (!stream.querySelector('.ai-block')) $('#canvas-float-reply').hidden = true;
+    }
+    const last = block.getBoundingClientRect();
+    const dx = first.left - last.left;
+    const dy = first.top - last.top;
+    // 只做 translate 过渡，不做 scale（宽度差异大会让文字变形）
+    block.style.transformOrigin = 'top left';
+    block.style.transform = `translate(${dx}px, ${dy}px)`;
+    block.style.transition = 'none';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        block.style.transition = 'transform .3s cubic-bezier(.34,.69,.1,1)';
+        block.style.transform = '';
+        setTimeout(() => { block.style.transition = ''; block.style.transformOrigin = ''; }, 320);
+      });
+    });
+    if (toFloat) { const b = $('#fr-body'); b.scrollTop = b.scrollHeight; }
+    else scrollBottom();
+  }
+
   function setFullscreen(on) {
+    if (flipLock) return;
     $('.main').classList.toggle('canvas-full', on);
+    // 全屏按钮状态：进入全屏 → 保持选中态
+    const expandBtn = $('#btn-canvas-expand');
+    expandBtn.title = on ? '退出全屏' : '全屏显示';
+    expandBtn.classList.toggle('active', on);
     const wrap = $('#chat-composer-wrap');
     const float = $('#canvas-float-composer');
     const composer = wrap.querySelector('.composer');
@@ -352,19 +396,41 @@
     if (!composerHome) composerHome = wrap.parentElement;
     if (on) {
       float.hidden = false;
+      float.classList.remove('fc-hidden');
+      $('#canvas-float-reply').classList.remove('fc-hidden');
+      $('#canvas-float-showzone').hidden = true;
       float.appendChild(wrap);
       composer.classList.add('compact');
       input.dataset.placeholder = '告诉灵犀你想做什么';
+      // 流式中且落点 B：把 feed 里的壳 FLIP 搬进气泡
+      if (running && getReplyMode() === 'B' && $('#feed').querySelector('.ai-block')) {
+        flipLock = true;
+        flipMoveShell(true);
+        setTimeout(() => { flipLock = false; }, 350);
+      }
     } else {
       float.hidden = true;
+      float.classList.remove('fc-hidden');
+      $('#canvas-float-reply').classList.remove('fc-hidden');
+      $('#canvas-float-showzone').hidden = true;
       composer.classList.remove('compact');
       input.dataset.placeholder = '描述一个复杂目标，灵犀会规划、执行并汇报进度';
-      // 气泡里的回复壳搬回对话流，并滚到最新
+      // 气泡里的回复壳搬回对话流（流式中用 FLIP，非流中直接搬）
       const stream = $('#fr-stream');
-      if (stream.firstElementChild) $('#feed').appendChild(stream.firstElementChild);
-      $('#canvas-float-reply').hidden = true;
+      if (stream.firstElementChild) {
+        if (running) {
+          flipLock = true;
+          flipMoveShell(false);
+          setTimeout(() => { flipLock = false; }, 350);
+        } else {
+          $('#feed').appendChild(stream.firstElementChild);
+          $('#canvas-float-reply').hidden = true;
+          scrollBottom();
+        }
+      } else {
+        $('#canvas-float-reply').hidden = true;
+      }
       if (wrap.parentElement !== composerHome) composerHome.appendChild(wrap);
-      scrollBottom();
     }
   }
 
@@ -1340,9 +1406,10 @@
     if (affected.includes(displayedDoc)) renderCanvas();
 
     // 完成回复：只此一句 + 一套操作栏
-    $('#status-text').textContent = '灵犀已就绪';
+    $('#status-text').textContent = '灵犀正在回复中…';
     const ans = '好的，已修改完成。';
     await typeText(sh.answer, ans);
+    $('#status-text').textContent = '灵犀已就绪';
     renderActions(sh.block, ans);
     session.messages.push({ role: 'ai', reply: { stepsHead: sh.headText.textContent, steps, answer: ans } });
 
@@ -1397,6 +1464,7 @@
     const floatMode = floatModeActive();
     const sh = renderAiShell();
     if (floatMode) attachFloatShell(sh);
+    else { /* 壳留在 feed，全屏切换时由 setFullscreen 的 FLIP 搬移 */ }
 
     // 打字指示
     const typing = el('div', 'typing', '<span></span><span></span><span></span>');
@@ -1418,8 +1486,9 @@
     sh.headText.textContent = reply.stepsHead;
 
     // 正文流式
+    $('#status-text').textContent = '灵犀正在回复中…';
+    await typeText(sh.answer, reply.answer, /仔细思考/.test(text));
     $('#status-text').textContent = '灵犀已就绪';
-    await typeText(sh.answer, reply.answer);
 
     // 文档卡片：生成完成后出现，并自动在右侧分屏打开（位置：正文之后、推荐追问之前）
     if (reply.doc) {
@@ -1438,11 +1507,13 @@
     scrollBottom();
   }
 
-  async function typeText(node, text) {
-    for (let i = 0; i < text.length; i += 3) {
-      node.textContent = text.slice(0, i + 3);
+  async function typeText(node, text, slow) {
+    const step = slow ? 1 : 3;
+    const delay = slow ? 30 : 10;
+    for (let i = 0; i < text.length; i += step) {
+      node.textContent = text.slice(0, i + step);
       scrollBottom();
-      await wait(10);
+      await wait(delay);
     }
     node.textContent = text;
   }
@@ -1608,6 +1679,17 @@
     // 气泡收起/展开
     $('#fr-collapse').onclick = () => setFloatCollapsed(true);
     $('#fr-expand').onclick = () => setFloatCollapsed(false);
+    // 全屏输入框隐藏/显示（收起条跟随一起隐藏）
+    $('#fc-hide').onclick = () => {
+      $('#canvas-float-composer').classList.add('fc-hidden');
+      $('#canvas-float-reply').classList.add('fc-hidden');
+      $('#canvas-float-showzone').hidden = false;
+    };
+    $('#fc-show').onclick = () => {
+      $('#canvas-float-composer').classList.remove('fc-hidden');
+      $('#canvas-float-reply').classList.remove('fc-hidden');
+      $('#canvas-float-showzone').hidden = true;
+    };
     // 方案 B/C：hover 发送按钮出操作提示
     const sendTip = $('#send-tip');
     $('#sel-pop-send').addEventListener('mouseenter', () => {

@@ -444,6 +444,7 @@ textarea { font-family: inherit; }
   transition: background .12s;
 }
 .cv-icon-btn:hover { background: var(--fill-hover); }
+.cv-icon-btn.active { background: var(--fill-12); }
 
 /* 保存按钮（黑色胶囊，对齐线上） */
 .cv-save-btn {
@@ -852,6 +853,54 @@ textarea { font-family: inherit; }
 .composer.compact .bar-left .exp-pill,
 .composer.compact .bar-left button:nth-child(3) { display: none; }
 
+/* 隐藏按钮：KDesign Button Icon Light Small（24px/r6），hover 输入框容器时才出现 */
+.canvas-float-composer::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -16px; height: 16px;
+}
+.fc-hide {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: -12px; width: 24px; height: 24px; border-radius: 50%;
+  background: #fff; border: 1px solid rgba(13,13,13,.12);
+  box-shadow: 0 2px 6px rgba(13,13,13,.10);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 21; opacity: 0; transition: opacity .15s;
+  color: #555;
+}
+.canvas-float-composer:hover .fc-hide { opacity: 1; }
+.fc-hide:hover { background: rgba(13,13,13,.06); }
+
+/* 输入框隐藏态：下移淡出 */
+.canvas-float-composer.fc-hidden {
+  opacity: 0; transform: translateX(-50%) translateY(24px);
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.canvas-float-composer:not(.fc-hidden) { transition: opacity .25s ease, transform .25s ease; }
+
+/* 底部热区：全屏时底部透明条，hover 触发显示按钮 */
+.canvas-float-showzone {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 56px; z-index: 18;
+}
+.canvas-float-showzone[hidden] { display: none; }
+
+/* 显示输入框按钮：热区 hover 时从下往上浮现但保持透明；hover 按钮本身才变白底不透明 */
+.fc-show {
+  position: absolute; left: 50%; bottom: 12px;
+  transform: translateX(-50%) translateY(24px); opacity: 0;
+  height: 32px; padding: 0 14px; border-radius: 999px;
+  background: transparent; border: none;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; line-height: 20px; color: var(--ink-weak);
+  transition: transform .25s ease, opacity .25s ease, background .15s, box-shadow .15s;
+}
+.canvas-float-showzone:hover .fc-show {
+  transform: translateX(-50%) translateY(0); opacity: 1;
+}
+.fc-show:hover {
+  background: #fff; border: 1px solid var(--line);
+  box-shadow: 0 6px 16px rgba(13,13,13,.08);
+}
+
 /* 全屏单条流式回复气泡（落点 B）：与输入框同容器语言（米底/line 描边/r20/shadow-large），限宽同胶囊、限高可滚、可收起 */
 .canvas-float-reply {
   position: absolute; left: 50%; transform: translateX(-50%);
@@ -865,11 +914,18 @@ textarea { font-family: inherit; }
   box-shadow: 0 12px 32px rgba(13,13,13,.08);
   padding: 10px 16px 14px;
 }
+/* 隐藏态：收起条也一起下移淡出 */
+.canvas-float-reply.fc-hidden {
+  opacity: 0; transform: translateX(-50%) translateY(24px);
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.canvas-float-reply:not(.fc-hidden) { transition: opacity .25s ease, transform .25s ease; }
 .fr-body::-webkit-scrollbar { width: 6px; }
 .fr-body::-webkit-scrollbar-thumb { background: rgba(120,115,105,.25); border-radius: 3px; }
-.fr-head { position: sticky; top: 0; display: flex; justify-content: flex-end; background: linear-gradient(var(--composer-bg) 60%, rgba(253,251,243,0)); z-index: 1; }
-.fr-collapse { width: 28px; height: 28px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
-.fr-collapse:hover { background: var(--fill-hover); }
+.fr-head { position: absolute; top: 6px; right: 10px; display: flex; justify-content: flex-end; z-index: 1; }
+.fr-collapse { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+.fr-collapse:hover { background: rgba(13,13,13,.06); }
 .fr-stream .ai-block { padding-top: 0; }
 /* 收起态：包含态——比下方输入框略窄、叠在其上方（借鉴 Codex）；文案「展示上一条消息」+ 品牌色圆展开钮 */
 .fr-bar {

@@ -179,7 +179,13 @@
         </div>
         <div class="canvas-content" id="canvas-content"><!-- JS 渲染 --></div>
         <!-- 全屏模式：悬浮紧凑输入框容器（composer 节点搬入） -->
-        <div class="canvas-float-composer" id="canvas-float-composer" hidden></div>
+        <div class="canvas-float-composer" id="canvas-float-composer" hidden>
+          <button class="fc-hide" id="fc-hide" title="隐藏输入框"><img src="assets/icons/arrow_down_s.svg" width="12" height="12" alt=""></button>
+        </div>
+        <!-- 全屏模式：底部热区 + 显示输入框按钮 -->
+        <div class="canvas-float-showzone" id="canvas-float-showzone" hidden>
+          <button class="fc-show" id="fc-show"><img src="assets/icons/arrow_up_s.svg" width="12" height="12" alt=""><span>显示输入框</span></button>
+        </div>
         <!-- 全屏模式：单条流式回复气泡（回复落点 B） -->
         <div class="canvas-float-reply" id="canvas-float-reply" hidden>
           <div class="fr-bar" id="fr-bar" hidden>
